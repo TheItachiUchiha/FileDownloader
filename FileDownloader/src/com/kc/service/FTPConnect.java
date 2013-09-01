@@ -5,47 +5,46 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Properties;
 
+import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
 
 import com.kc.constants.CommonConstants;
+import com.kc.utils.FileUtils;
+import com.kc.vo.AuthenticationVO;
  
 public class FTPConnect {
  
-    static Properties props;
- 
+	AuthenticationVO authenticationVO;
+	
     public static void main(String[] args) {
  
     	FTPConnect ftpConnect = new FTPConnect();
-        ftpConnect.startFTP();
+        ftpConnect.startFTP("ADLnames.txt");
  
     }
  
-    public boolean startFTP(){
+    public boolean startFTP(String fileName){
  
-        props = new Properties();
- 
+    	authenticationVO = new AuthenticationVO();
+    	
         try {
  
-            props.load(new FileInputStream("properties/" + CommonConstants.PROPERTIES_FILE));
- 
-            String serverAddress = props.getProperty("ftpServerAddress").trim();
-            String userId = props.getProperty("userId").trim();
-            String password = props.getProperty("password").trim();
-            String remoteDirectory = props.getProperty("remoteDirectory").trim();
-            String localDirectory = props.getProperty("localDirectory").trim();
-            
+        	authenticationVO = FileUtils.readFTPDetails();
             //new ftp client
             FTPClient ftp = new FTPClient();
+            
             //try to connect
-            ftp.connect(serverAddress);
+            ftp.connect(authenticationVO.getIp());
+           
             //login to server
-            if(!ftp.login(userId, password))
+            if(!ftp.login(authenticationVO.getUsername(), authenticationVO.getPassword()))
             {
                 ftp.logout();
                 return false;
             }
+            ftp.setFileType(FTP.BINARY_FILE_TYPE);
             int reply = ftp.getReplyCode();
             //FTPReply stores a set of constants for FTP reply codes. 
             if (!FTPReply.isPositiveCompletion(reply))
@@ -59,7 +58,6 @@ public class FTPConnect {
             //get system name
             System.out.println("Remote system is " + ftp.getSystemType());
             //change current directory
-            ftp.changeWorkingDirectory(remoteDirectory);
             System.out.println("Current directory is " + ftp.printWorkingDirectory());
               
             //get list of filenames
@@ -71,23 +69,18 @@ public class FTPConnect {
                     if (!file.isFile()) {
                         continue;
                     }
-                    System.out.println("File is " + file.getName());
-                    
-                    
-                    //get output stream
-                    OutputStream output;
-                    output = new FileOutputStream(localDirectory);
-                    //get the file from the remote system
-                    ftp.retrieveFile(file.getName(), output);
-                    //close output stream
-                    output.close();
-                    
-                    //delete the file
-                    ftp.deleteFile(file.getName());
-                    
+                    if(file.getName().equals(fileName)){
+                    	System.out.println("File is " + file.getName());
+                        //get output stream
+                        OutputStream output;
+                        output = new FileOutputStream("../"+fileName);
+                        //get the file from the remote system
+                        ftp.retrieveFile(file.getName(), output);
+                        //close output stream
+                        output.close();
+                    }
                 }
             }
-            
             ftp.logout();
             ftp.disconnect();
         }
@@ -98,7 +91,4 @@ public class FTPConnect {
         }
         return true;
     }
-    
-    
- 
 }

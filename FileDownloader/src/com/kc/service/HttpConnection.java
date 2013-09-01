@@ -1,15 +1,16 @@
 package com.kc.service;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.Observable;
-import java.util.Properties;
 
 import com.kc.constants.CommonConstants;
+import com.kc.utils.FileUtils;
+import com.kc.vo.AuthenticationVO;
 
 public class HttpConnection extends Observable implements Runnable {
 
@@ -28,23 +29,40 @@ public class HttpConnection extends Observable implements Runnable {
 	public static final int ERROR = 4;
 
 	private URL url; // download URL
+	private URL serverScriptURL;
 	private int size; // size of download in bytes
 	private int downloaded; // number of bytes downloaded
 	private int status; // current status of download
+	private String fileName = "";
 	
-	static Properties props;
-
+	AuthenticationVO authenticationVO;
 	// Constructor for Download.
 	public HttpConnection() {
 		
 		size = -1;
 		downloaded = 0;
 		status = DOWNLOADING;
-		props = new Properties();
+		authenticationVO = new AuthenticationVO();		
 		
-		// Begin the download.
-		download();
+		
 	}
+	
+	
+	
+
+	public String getFileName() {
+		return fileName;
+	}
+
+
+
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
+
+
 
 	// Get this download's URL.
 	public String getUrl() {
@@ -97,11 +115,6 @@ public class HttpConnection extends Observable implements Runnable {
 		thread.start();
 	}
 
-	// Get file name portion of URL.
-	private String getFileName(URL url) {
-		String fileName = url.getFile();
-		return fileName.substring(fileName.lastIndexOf('/') + 1);
-	}
 
 	// Download file.
 	public void run() {
@@ -109,10 +122,22 @@ public class HttpConnection extends Observable implements Runnable {
 		InputStream stream = null;
 
 		try {
-			props.load(new FileInputStream("properties/" + CommonConstants.PROPERTIES_FILE));
-			String urlString = props.getProperty("httpServerAddress").trim();
-			url = new URL(urlString);
-			String localDirectory = props.getProperty("localDirectory").trim();
+			authenticationVO = FileUtils.readHTTPDetails();
+				
+			url = new URL(authenticationVO.getUrl());
+			
+			fileName = authenticationVO.getUrl().substring(authenticationVO.getUrl().lastIndexOf('/')+1, authenticationVO.getUrl().length());
+			
+			serverScriptURL = new URL(authenticationVO.getServerScript().substring(0, authenticationVO.getServerScript().lastIndexOf('_')+1)
+					+ fileName);
+			
+			//Post the Script
+			
+	        URLConnection conn = serverScriptURL.openConnection();
+	        conn.setDoOutput(true);
+	        conn.connect();
+			
+			
 			// Open connection to URL.
 			HttpURLConnection connection = (HttpURLConnection) url
 					.openConnection();
@@ -143,7 +168,7 @@ public class HttpConnection extends Observable implements Runnable {
 			}
 
 			// Open file and seek to the end of it.
-			file = new RandomAccessFile(localDirectory, "rw");
+			file = new RandomAccessFile("../" + fileName, "rw");
 			file.seek(downloaded);
 
 			stream = connection.getInputStream();

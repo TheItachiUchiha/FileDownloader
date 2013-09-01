@@ -7,11 +7,14 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
@@ -19,11 +22,14 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.border.LineBorder;
 
+import com.kc.constants.CommonConstants;
 import com.kc.service.FTPConnect;
 import com.kc.service.HttpConnection;
-import com.kc.service.Login;
+import com.kc.service.ReadSplitTextFiles;
+import com.kc.utils.FileUtils;
+import com.kc.vo.AuthenticationVO;
 
-public class LoginDialog extends JDialog {
+public class LoginDialog extends JDialog/* implements ActionListener*/{
 	 
     private JTextField tfUsername;
     private JPasswordField pfPassword;
@@ -37,61 +43,89 @@ public class LoginDialog extends JDialog {
     private boolean succeeded;
     private FTPConnect ftpConnect;
     private HttpConnection httpConnection;
+    private JLabel lbUrlIp;
+    private JTextField urlIP;
+    private AuthenticationVO ftpAuthenticationVO;
+    private AuthenticationVO httpAuthenticationVO;
+   
  
-    public LoginDialog(Frame parent) {
+    public LoginDialog(final Frame parent) {
         super(parent, "Login", true);
         //
         JPanel panel = new JPanel(new GridBagLayout());
         ftpConnect = new FTPConnect();
         httpConnection = new HttpConnection();
-        
-        
-        
+        ftpAuthenticationVO = new AuthenticationVO();
+        httpAuthenticationVO = new AuthenticationVO();
+        httpAuthenticationVO = FileUtils.readHTTPDetails();
+        ftpAuthenticationVO = FileUtils.readFTPDetails();
+       
         
         GridBagConstraints cs = new GridBagConstraints();
         
-        
-        
-        
-        
         cs.fill = GridBagConstraints.HORIZONTAL;
  
-        lbUsername = new JLabel("Username: ");
+        
+        rbStdHttp = new JRadioButton("Standard http");
         cs.gridx = 0;
         cs.gridy = 0;
+        cs.gridwidth = 1;
+        panel.add(rbStdHttp, cs);
+        
+        rbStdHttp.setActionCommand("HTTP");
+        //rbStdHttp.addActionListener(this);
+        
+        rbFtp = new JRadioButton("FTP");
+        rbFtp.setSelected(true);
+        cs.gridx = 1;
+        cs.gridy = 0;
+        cs.gridwidth = 2;
+        panel.add(rbFtp, cs);
+        
+        rbFtp.setActionCommand("FTP");    
+        //rbFtp.addActionListener(this);
+        
+        lbUsername = new JLabel("Username: ");
+        cs.gridx = 0;
+        cs.gridy = 1;
         cs.gridwidth = 1;
         panel.add(lbUsername, cs);
  
         tfUsername = new JTextField(20);
+        tfUsername.setText(ftpAuthenticationVO.getUsername());
         cs.gridx = 1;
-        cs.gridy = 0;
+        cs.gridy = 1;
         cs.gridwidth = 2;
         panel.add(tfUsername, cs);
  
         lbPassword = new JLabel("Password: ");
         cs.gridx = 0;
-        cs.gridy = 1;
+        cs.gridy = 2;
         cs.gridwidth = 1;
         panel.add(lbPassword, cs);
  
         pfPassword = new JPasswordField(20);
+        pfPassword.setText(ftpAuthenticationVO.getPassword());
         cs.gridx = 1;
-        cs.gridy = 1;
+        cs.gridy = 2;
         cs.gridwidth = 2;
         panel.add(pfPassword, cs);
         
-        
-        rbStdHttp = new JRadioButton("Standard http");
+        lbUrlIp = new JLabel("IP");
         cs.gridx = 0;
-        cs.gridy = 2;
+        cs.gridy = 3;
         cs.gridwidth = 1;
-        panel.add(rbStdHttp, cs);
+        panel.add(lbUrlIp, cs);
         
-        rbFtp = new JRadioButton("FTP");
+        urlIP = new JTextField(30);
+        urlIP.setText(ftpAuthenticationVO.getIp());
         cs.gridx = 1;
-        cs.gridy = 2;
+        cs.gridy = 3;
         cs.gridwidth = 2;
-        panel.add(rbFtp, cs);
+        panel.add(urlIP, cs);
+        
+        
+       
         panel.setBorder(new LineBorder(Color.GRAY));
         
         group = new ButtonGroup();
@@ -99,38 +133,40 @@ public class LoginDialog extends JDialog {
         group.add(rbFtp);
         
  
-        btnLogin = new JButton("Login");
-        
+        btnLogin = new JButton("Save");
         
         btnLogin.addActionListener(new ActionListener() {
  
             public void actionPerformed(ActionEvent e) {
-            	if(rbFtp.isSelected())
+            	if(null == tfUsername.getText() || "".equals(tfUsername.getText()) || 
+            			null == pfPassword.getText() || "".equals(pfPassword.getText()) ||
+            			null == urlIP.getText() || "".equals(urlIP.getText())) 
             	{
-            		System.out.println("ftp");
+            		JOptionPane.showMessageDialog(parent, "Please Fill all Details");
             	}
             	else
             	{
-            		System.out.println("http");
+            		if(rbStdHttp.isSelected())
+            		{
+            			httpAuthenticationVO.setUrl(httpAuthenticationVO.getServerDefaultUrl());
+            			FileUtils.saveHTTPDetails(httpAuthenticationVO);
+            			httpConnection.run();
+            			FileUtils.saveDefault(CommonConstants.HTTP); 
+            		}
+            		else if(rbFtp.isSelected())
+            		{
+            			ftpAuthenticationVO.setIp(urlIP.getText());
+            			ftpAuthenticationVO.setUsername(tfUsername.getText());
+            			ftpAuthenticationVO.setPassword(pfPassword.getText());
+            			FileUtils.saveFTPDetails(ftpAuthenticationVO);
+            			if(!ftpConnect.startFTP(CommonConstants.TEMP_TXT_FILE))
+            			{
+            				JOptionPane.showMessageDialog(parent, "Connection Error !");
+            			}
+            			FileUtils.saveDefault(CommonConstants.FTP);          			
+            		}
             	}
-                if (Login.authenticate(getUsername(), getPassword())) {
-                    JOptionPane.showMessageDialog(LoginDialog.this,
-                            "Hi " + getUsername() + "! You have successfully logged in.",
-                            "Login",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    succeeded = true;
-                    dispose();
-                } else {
-                    JOptionPane.showMessageDialog(LoginDialog.this,
-                            "Invalid username or password",
-                            "Login",
-                            JOptionPane.ERROR_MESSAGE);
-                    // reset username and password
-                    tfUsername.setText("");
-                    pfPassword.setText("");
-                    succeeded = false;
- 
-                }
+            	dispose();
             }
         });
         
@@ -164,4 +200,21 @@ public class LoginDialog extends JDialog {
     public boolean isSucceeded() {
         return succeeded;
     }
+    
+    
+    /*public void actionPerformed(ActionEvent e) {
+        if ("HTTP".equals(e.getActionCommand())) {
+        	urlIP.setVisible(false);       	
+            lbUrlIp.setVisible(false);   
+        }
+        if ("FTP".equals(e.getActionCommand())) {
+        	tfUsername.setText(ftpAuthenticationVO.getUsername());
+        	pfPassword.setText(ftpAuthenticationVO.getPassword());
+        	urlIP.setText(ftpAuthenticationVO.getIp()); 
+            lbUrlIp.setText("IP Address:");   
+            urlIP.setVisible(true);
+            lbUrlIp.setVisible(true); 
+        }
+    }*/
+    
 }

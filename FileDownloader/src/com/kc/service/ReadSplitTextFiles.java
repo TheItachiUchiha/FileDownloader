@@ -17,13 +17,13 @@ public class ReadSplitTextFiles {
 	{
 		props = new Properties();
 	}
-	public List<String> readTextFile()
+	public List<String> readTextFile(String fileName)
 	{
 		String line = null;
 		List<String> collection = null;
 		try{
-			props.load(new FileInputStream("properties/" + CommonConstants.PROPERTIES_FILE));
-            BufferedReader br = new BufferedReader(new FileReader(props.getProperty("localDirectory").trim()));
+			props.load(new FileInputStream("../" + CommonConstants.PROPERTIES_FILE));
+            BufferedReader br = new BufferedReader(new FileReader("../"+fileName));
 			collection = new ArrayList<String>();
 			String[] temp;
 			
@@ -45,7 +45,7 @@ public class ReadSplitTextFiles {
 	public static void main(String args[])
 	{
 		ReadSplitTextFiles  files = new ReadSplitTextFiles();
-		files.readTextFile();
+		files.readTextFile("");
 	}
 
 }
