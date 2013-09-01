@@ -148,9 +148,6 @@ public class LoginDialog extends JDialog/* implements ActionListener*/{
             	{
             		if(rbStdHttp.isSelected())
             		{
-            			httpAuthenticationVO.setUrl(httpAuthenticationVO.getServerDefaultUrl());
-            			FileUtils.saveHTTPDetails(httpAuthenticationVO);
-            			httpConnection.run();
             			FileUtils.saveDefault(CommonConstants.HTTP); 
             		}
             		else if(rbFtp.isSelected())
@@ -159,10 +156,6 @@ public class LoginDialog extends JDialog/* implements ActionListener*/{
             			ftpAuthenticationVO.setUsername(tfUsername.getText());
             			ftpAuthenticationVO.setPassword(pfPassword.getText());
             			FileUtils.saveFTPDetails(ftpAuthenticationVO);
-            			if(!ftpConnect.startFTP(CommonConstants.TEMP_TXT_FILE))
-            			{
-            				JOptionPane.showMessageDialog(parent, "Connection Error !");
-            			}
             			FileUtils.saveDefault(CommonConstants.FTP);          			
             		}
             	}

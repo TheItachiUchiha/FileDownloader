@@ -34,6 +34,8 @@ public class MainForm extends JFrame {
 	 FTPConnect ftpConnect;
 	 HttpConnection httpConnection;
 	 UnZip unZip;
+	 AuthenticationVO ftpAuthenticationVO;
+	 AuthenticationVO httpAuthenticationVO;
 	
 	public static void main(String[] args) {
 
@@ -47,6 +49,9 @@ public class MainForm extends JFrame {
 	}
 
 	public MainForm() {
+		
+		ftpAuthenticationVO = FileUtils.readFTPDetails();
+		httpAuthenticationVO = FileUtils.readHTTPDetails();		
 		readSplitTextFiles = new ReadSplitTextFiles();
 		ftpConnect = new FTPConnect();
 		httpConnection = new HttpConnection();
@@ -99,6 +104,22 @@ public class MainForm extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				{
+					if(FileUtils.readDefault().equals(CommonConstants.FTP))
+					{
+            			if(!ftpConnect.startFTP(CommonConstants.TEMP_TXT_FILE))
+            			{
+            				JOptionPane.showMessageDialog(mainForm, "Connection Error !");
+            			}
+					}
+					else
+					{
+						httpAuthenticationVO.setUrl(httpAuthenticationVO.getServerDefaultUrl());
+            			FileUtils.saveHTTPDetails(httpAuthenticationVO);
+            			httpConnection.run();
+					}
+					
+					
+					
 					File file = new File("../"+ CommonConstants.TEMP_TXT_FILE);
 					if(!file.exists())
 					{
